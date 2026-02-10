@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:portfolio/utils/app_colors.dart';
 import 'package:portfolio/utils/app_spacing.dart';
+import 'package:portfolio/utils/app_typography.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SectionTitle extends StatelessWidget {
@@ -19,6 +20,7 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isMobile = AppSpacing.isMobile(constraints.maxWidth);
         final horizontalPadding = AppSpacing.getHorizontalPadding(constraints.maxWidth);
 
         return Padding(
@@ -31,13 +33,13 @@ class SectionTitle extends StatelessWidget {
                   Text(
                     number,
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 40,
+                      fontSize: AppTypography.getSectionNumberSize(constraints.maxWidth),
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary.withValues(alpha: 0.3),
                       height: 1,
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  SizedBox(width: isMobile ? 12 : 20),
                   Expanded(
                     child: Container(
                       height: 1,
@@ -53,21 +55,21 @@ class SectionTitle extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
               Text(
                 title,
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 28,
+                  fontSize: AppTypography.getSectionTitleSize(constraints.maxWidth),
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
                 ),
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: isMobile ? 8 : 12),
                 Text(
                   subtitle!,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 15,
+                    fontSize: isMobile ? 14 : 15,
                     fontWeight: FontWeight.w400,
                     color: AppColors.textSecondary,
                   ),

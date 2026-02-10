@@ -51,4 +51,14 @@ class AppSpacing {
     if (screenWidth < breakpointWide) return xxxl; // 64
     return huge; // 96 - extra wide screens get generous margins
   }
+
+  // Helper methods for responsive design
+  static bool isMobile(double width) => width < breakpointMobile;
+  static bool isTablet(double width) => width >= breakpointMobile && width < breakpointTablet;
+
+  static double getVerticalSpacing(double width) =>
+      isMobile(width) ? sectionVerticalMobile : sectionVerticalDesktop;
+
+  static double getCardPadding(double width) =>
+      isMobile(width) ? cardLarge : cardXL;
 }

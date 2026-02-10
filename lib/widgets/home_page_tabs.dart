@@ -40,7 +40,7 @@ class _TabHomePageState extends State<TabHomePage>
         backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text(
-          'Alex Chen',
+          'Obalolu Okeowo',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,

@@ -1,16 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:portfolio/constants/content.dart';
 import 'package:portfolio/models/skill.dart';
-import 'package:portfolio/utils/app_animations.dart';
-import 'package:portfolio/utils/app_colors.dart';
 import 'package:portfolio/utils/app_spacing.dart';
-import 'package:portfolio/widgets/shared/animated_widgets.dart';
+import 'package:portfolio/widgets/shared/category_tab_bar.dart';
 import 'package:portfolio/widgets/shared/section_title.dart';
 import 'package:portfolio/widgets/shared/responsive_container.dart';
+import 'package:portfolio/widgets/shared/skill_pill.dart';
 
-class SkillsSection extends StatelessWidget {
+class SkillsSection extends StatefulWidget {
   const SkillsSection({super.key});
+
+  @override
+  State<SkillsSection> createState() => _SkillsSectionState();
+}
+
+class _SkillsSectionState extends State<SkillsSection> {
+  SkillCategory _selectedCategory = SkillCategory.all;
+
+  void _onCategorySelected(SkillCategory category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+  }
+
+  List<Skill> get _filteredSkills {
+    if (_selectedCategory == SkillCategory.all) {
+      return AppContent.skills;
+    }
+    return AppContent.skills
+        .where((skill) => skill.category == _selectedCategory)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,150 +40,62 @@ class SkillsSection extends StatelessWidget {
       ),
       child: ResponsiveContainer(
         maxWidth: AppSpacing.maxWidthContent,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionTitle(
-            number: '02',
-            title: 'Skills & Expertise',
-            subtitle: 'Technologies and tools I work with.',
-          ),
-          const SizedBox(height: 40),
-          Wrap(
-            spacing: AppSpacing.lg,
-            runSpacing: AppSpacing.lg,
-            children: AppContent.skillCategories.asMap().entries.map((entry) {
-              final index = entry.key;
-              final category = entry.value;
-              return SkillCategoryCard(
-                category: category,
-                index: index,
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
-}
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = AppSpacing.isMobile(constraints.maxWidth);
 
-class SkillCategoryCard extends StatefulWidget {
-  final SkillCategory category;
-  final int index;
-
-  const SkillCategoryCard({
-    super.key,
-    required this.category,
-    required this.index,
-  });
-
-  @override
-  State<SkillCategoryCard> createState() => _SkillCategoryCardState();
-}
-
-class _SkillCategoryCardState extends State<SkillCategoryCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        transform: Matrix4.identity()..scaled(_isHovered ? 1.02 : 1.0, 1.0, 1.0),
-        curve: AppAnimations.easeOut,
-        child: FadeInAnimation(
-          delay: AppAnimations.staggerDelay(widget.index * 2),
-          child: Container(
-            width: 340,
-            padding: const EdgeInsets.all(AppSpacing.cardXL),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: _isHovered ? 0.3 : 0.1),
-              ),
-              boxShadow: _isHovered
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.category.name,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    letterSpacing: 0.5,
-                  ),
+                const SectionTitle(
+                  number: '02',
+                  title: 'Skills & Expertise',
+                  subtitle: 'Technologies and tools I work with.',
                 ),
-                const SizedBox(height: 20),
-                ...widget.category.skills.map((skill) => SkillBarItem(skill: skill)),
+                SizedBox(height: isMobile ? 24 : 32),
+                CategoryTabBar(
+                  selectedCategory: _selectedCategory,
+                  onCategorySelected: _onCategorySelected,
+                ),
+                SizedBox(height: isMobile ? 24 : 40),
+                _SkillsGrid(
+                  skills: _filteredSkills,
+                  key: ValueKey(_selectedCategory),
+                  isMobile: isMobile,
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class SkillBarItem extends StatelessWidget {
-  final Skill skill;
+class _SkillsGrid extends StatelessWidget {
+  final List<Skill> skills;
+  final bool isMobile;
 
-  const SkillBarItem({
+  const _SkillsGrid({
     super.key,
-    required this.skill,
+    required this.skills,
+    required this.isMobile,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                skill.name,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                '${skill.level}%',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Animated progress bar
-          AnimatedProgressBar(
-            progress: skill.level / 100,
-            color: AppColors.primary,
-            height: 4,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ],
-      ),
+    return Wrap(
+      spacing: isMobile ? 10 : 12,
+      runSpacing: isMobile ? 10 : 12,
+      children: skills.asMap().entries.map((entry) {
+        final index = entry.key;
+        final skill = entry.value;
+        return SkillPill(
+          key: ValueKey(skill.name),
+          skill: skill,
+          delay: Duration(milliseconds: index * 50),
+        );
+      }).toList(),
     );
   }
 }

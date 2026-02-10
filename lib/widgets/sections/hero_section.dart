@@ -1,15 +1,21 @@
+import 'dart:io' show Directory, File;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:portfolio/constants/content.dart';
 import 'package:portfolio/utils/app_animations.dart';
 import 'package:portfolio/utils/app_colors.dart';
 import 'package:portfolio/utils/app_spacing.dart';
+import 'package:portfolio/utils/app_typography.dart';
 import 'package:portfolio/widgets/shared/animated_widgets.dart';
 import 'package:portfolio/widgets/shared/segmented_neon_avatar.dart';
 import 'package:portfolio/widgets/shared/grid_background.dart';
 import 'package:portfolio/widgets/shared/responsive_container.dart';
 import 'package:portfolio/widgets/shared/shimmer_text.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart' as launcher;
 
 class HeroSection extends StatefulWidget {
   const HeroSection({super.key});
@@ -26,152 +32,301 @@ class _HeroSectionState extends State<HeroSection> {
       padding: const EdgeInsets.symmetric(vertical: 80),
       child: ResponsiveContainer(
         maxWidth: AppSpacing.maxWidthContent,
-        child: GridBackground(
-        child: Column(
-          children: [
-            const SizedBox(height: 48),
-            // Profile and greeting
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Greeting - fades in first
-                      FadeInAnimation(
-                        delay: const Duration(milliseconds: 100),
-                        child: Text(
-                          'Hello, I\'m',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 84,
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Name - slides up with fade
-                      FadeInAnimation(
-                        delay: const Duration(milliseconds: 200),
-                        slideOffset: const Offset(0, 20),
-                        child: ShimmerText(
-                          text: AppContent.name,
-                          textStyle: GoogleFonts.jetBrainsMono(
-                            fontSize: 108,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Tagline - fades in
-                      FadeInAnimation(
-                        delay: const Duration(milliseconds: 350),
-                        child: Text(
-                          AppContent.tagline,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 18,
-                            color: AppColors.textSecondary,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      FadeInAnimation(
-                        delay: const Duration(milliseconds: 400),
-                        child: Text(
-                          AppContent.subtext,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 13,
-                            color: AppColors.textTertiary,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      // View CV Button + Social Icons - staggered pop in
-                      Row(
-                        children: [
-                          ScaleInAnimation(
-                            delay: const Duration(milliseconds: 650),
-                            beginScale: 0.8,
-                            child: _buildSecondaryButton('View CV'),
-                          ),
-                          const SizedBox(width: 20),
-                          ScaleInAnimation(
-                            delay: const Duration(milliseconds: 700),
-                            beginScale: 0.5,
-                            child: _buildSocialIcon(FontAwesomeIcons.github, AppContent.github, 'GitHub'),
-                          ),
-                          const SizedBox(width: 16),
-                          ScaleInAnimation(
-                            delay: const Duration(milliseconds: 750),
-                            beginScale: 0.5,
-                            child: _buildSocialIcon(FontAwesomeIcons.linkedin, AppContent.linkedin, 'LinkedIn'),
-                          ),
-                          const SizedBox(width: 16),
-                          ScaleInAnimation(
-                            delay: const Duration(milliseconds: 800),
-                            beginScale: 0.5,
-                            child: _buildSocialIcon(FontAwesomeIcons.xTwitter, AppContent.twitter, 'Twitter'),
-                          ),
-                          const SizedBox(width: 16),
-                          ScaleInAnimation(
-                            delay: const Duration(milliseconds: 850),
-                            beginScale: 0.5,
-                            child: _buildSocialIcon(FontAwesomeIcons.envelope, 'mailto:${AppContent.email}', 'Email'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 64),
-                // Profile Picture - with segmented neon border animation
-                SegmentedNeonAvatarBorder(
-                  size: 500,
-                  segmentCount: 12,
-                  stroke: 4,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                    ),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/avatar.png',
-                        width: 500,
-                        height: 500,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 64),
-            // Stats Row - with count up animation
-            Row(
-              children: [
-                Expanded(child: AnimatedStatCard(value: AppContent.yearsExp, label: 'Years Experience')),
-                const SizedBox(width: 20),
-                Expanded(child: AnimatedStatCard(value: AppContent.appsBuilt, label: 'Apps Built')),
-                const SizedBox(width: 20),
-                Expanded(child: AnimatedStatCard(value: AppContent.downloads, label: 'Downloads')),
-                const SizedBox(width: 20),
-                Expanded(child: AnimatedStatCard(value: AppContent.uptime, label: 'Uptime')),
-              ],
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = AppSpacing.isMobile(constraints.maxWidth);
+            final screenWidth = constraints.maxWidth;
+
+            return GridBackground(
+              child: Column(
+                children: [
+                  SizedBox(height: isMobile ? 32 : 48),
+                  // Profile and greeting
+                  isMobile ? _buildMobileLayout(screenWidth) : _buildDesktopLayout(),
+                  SizedBox(height: isMobile ? 40 : 64),
+                  // Stats - responsive layout
+                  _buildStatsSection(isMobile),
+                ],
+              ),
+            );
+          },
         ),
-      ),
       ),
     );
   }
 
-  Widget _buildSecondaryButton(String text) {
-    return _AnimatedSecondaryButton(text: text);
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Greeting - fades in first
+              FadeInAnimation(
+                delay: const Duration(milliseconds: 100),
+                child: Text(
+                  'Hello, I\'m',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: AppTypography.heroDesktop,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Name - slides up with fade
+              FadeInAnimation(
+                delay: const Duration(milliseconds: 200),
+                slideOffset: const Offset(0, 20),
+                child: ShimmerText(
+                  text: AppContent.name,
+                  textStyle: GoogleFonts.jetBrainsMono(
+                    fontSize: AppTypography.nameDesktop,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Tagline - fades in
+              FadeInAnimation(
+                delay: const Duration(milliseconds: 350),
+                child: Text(
+                  AppContent.tagline,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FadeInAnimation(
+                delay: const Duration(milliseconds: 400),
+                child: Text(
+                  AppContent.subtext,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    color: AppColors.textTertiary,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              // View CV Button + Social Icons - staggered pop in
+              Row(
+                children: [
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 650),
+                    beginScale: 0.8,
+                    child: _buildSecondaryButton('View CV', AppContent.cvUrl),
+                  ),
+                  const SizedBox(width: 20),
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 700),
+                    beginScale: 0.5,
+                    child: _buildSocialIcon(FontAwesomeIcons.github, AppContent.github, 'GitHub'),
+                  ),
+                  const SizedBox(width: 16),
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 750),
+                    beginScale: 0.5,
+                    child: _buildSocialIcon(FontAwesomeIcons.linkedin, AppContent.linkedin, 'LinkedIn'),
+                  ),
+                  const SizedBox(width: 16),
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 800),
+                    beginScale: 0.5,
+                    child: _buildSocialIcon(FontAwesomeIcons.xTwitter, AppContent.twitter, 'Twitter'),
+                  ),
+                  const SizedBox(width: 16),
+                  ScaleInAnimation(
+                    delay: const Duration(milliseconds: 850),
+                    beginScale: 0.5,
+                    child: _buildSocialIcon(FontAwesomeIcons.envelope, 'mailto:${AppContent.email}', 'Email'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 64),
+        // Profile Picture - with segmented neon border animation
+        SegmentedNeonAvatarBorder(
+          size: 500,
+          segmentCount: 12,
+          stroke: 4,
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/avatar.png',
+                width: 500,
+                height: 500,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(double screenWidth) {
+    return Column(
+      children: [
+        // Text content first on mobile
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Greeting - fades in first
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 100),
+              child: Text(
+                'Hello, I\'m',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: AppTypography.heroMobile,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Name - slides up with fade
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 200),
+              slideOffset: const Offset(0, 20),
+              child: ShimmerText(
+                text: AppContent.name,
+                textStyle: GoogleFonts.jetBrainsMono(
+                  fontSize: AppTypography.nameMobile,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  height: 1.1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Tagline - fades in
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 350),
+              child: Text(
+                AppContent.tagline,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 400),
+              child: Text(
+                AppContent.subtext,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 12,
+                  color: AppColors.textTertiary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // View CV Button + Social Icons - wrapped for mobile
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 650),
+                  beginScale: 0.8,
+                  child: _buildSecondaryButton('View CV', AppContent.cvUrl),
+                ),
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 700),
+                  beginScale: 0.5,
+                  child: _buildSocialIcon(FontAwesomeIcons.github, AppContent.github, 'GitHub'),
+                ),
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 750),
+                  beginScale: 0.5,
+                  child: _buildSocialIcon(FontAwesomeIcons.linkedin, AppContent.linkedin, 'LinkedIn'),
+                ),
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 800),
+                  beginScale: 0.5,
+                  child: _buildSocialIcon(FontAwesomeIcons.xTwitter, AppContent.twitter, 'Twitter'),
+                ),
+                ScaleInAnimation(
+                  delay: const Duration(milliseconds: 850),
+                  beginScale: 0.5,
+                  child: _buildSocialIcon(FontAwesomeIcons.envelope, 'mailto:${AppContent.email}', 'Email'),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        // Profile Picture - smaller on mobile, below text
+        Center(
+          child: SegmentedNeonAvatarBorder(
+            size: 220,
+            segmentCount: 12,
+            stroke: 3,
+            child: Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/avatar.png',
+                  width: 220,
+                  height: 220,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsSection(bool isMobile) {
+    return FadeInAnimation(
+      delay: const Duration(milliseconds: 900),
+      child: isMobile
+          ? Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 24,
+              runSpacing: 24,
+              children: [
+                _buildMinimalStat(AppContent.age, 'Age', isMobile),
+                _buildMinimalStat(AppContent.yearsExperience, 'Years of\nexperience', isMobile),
+                _buildMinimalStat(AppContent.projectsWorked, 'Projects\nworked on', isMobile),
+                _buildMinimalStat(AppContent.coffees, 'Coffees', isMobile),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildMinimalStat(AppContent.age, 'Age', isMobile),
+                _buildMinimalStat(AppContent.yearsExperience, 'Years of\nexperience', isMobile),
+                _buildMinimalStat(AppContent.projectsWorked, 'Projects\nworked on', isMobile),
+                _buildMinimalStat(AppContent.coffees, 'Coffees', isMobile),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildSecondaryButton(String text, String url) {
+    return _AnimatedSecondaryButton(text: text, url: url);
   }
 
   Widget _buildSocialIcon(IconData icon, String url, String tooltip) {
@@ -182,16 +337,72 @@ class _HeroSectionState extends State<HeroSection> {
     );
   }
 
-  void _launchUrl(String url) {
-    debugPrint('Launch: $url');
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await launcher.canLaunchUrl(uri)) {
+      await launcher.launchUrl(uri, mode: launcher.LaunchMode.externalApplication);
+    } else {
+      debugPrint('Could not launch: $url');
+    }
+  }
+
+  Widget _buildMinimalStat(String value, String label, bool isMobile) {
+    return Column(
+      children: [
+        _buildStatValue(value, isMobile),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimary,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatValue(String value, bool isMobile) {
+    final fontSize = isMobile ? AppTypography.statMobile : AppTypography.statDesktop;
+    // Extract numeric portion and suffix for count-up animation
+    final match = RegExp(r'^(\d+)(.*)$').firstMatch(value);
+    if (match != null) {
+      final numericValue = int.parse(match.group(1)!);
+      final suffix = match.group(2) ?? '';
+      return CountUpAnimation(
+        end: numericValue,
+        suffix: suffix,
+        delay: const Duration(milliseconds: 1100),
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+          height: 1,
+        ),
+      );
+    }
+    // Non-numeric values (like ∞) display as-is
+    return Text(
+      value,
+      style: GoogleFonts.jetBrainsMono(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+        height: 1,
+      ),
+    );
   }
 }
 
 /// Animated secondary button with hover fill effect
 class _AnimatedSecondaryButton extends StatefulWidget {
   final String text;
+  final String url;
 
-  const _AnimatedSecondaryButton({required this.text});
+  const _AnimatedSecondaryButton({required this.text, required this.url});
 
   @override
   State<_AnimatedSecondaryButton> createState() => _AnimatedSecondaryButtonState();
@@ -200,102 +411,61 @@ class _AnimatedSecondaryButton extends StatefulWidget {
 class _AnimatedSecondaryButtonState extends State<_AnimatedSecondaryButton> {
   bool _isHovered = false;
 
+  Future<void> _launchCV() async {
+    if (widget.url.startsWith('http')) {
+      final uri = Uri.parse(widget.url);
+      if (await launcher.canLaunchUrl(uri)) {
+        await launcher.launchUrl(uri, mode: launcher.LaunchMode.externalApplication);
+      }
+    } else {
+      // For local assets, load from root bundle
+      await _launchLocalAsset();
+    }
+  }
+
+  Future<void> _launchLocalAsset() async {
+    try {
+      if (kIsWeb) {
+        // On web, open the PDF directly from assets
+        await launcher.launchUrl(Uri.parse('assets/cv.pdf'));
+      } else {
+        // On mobile/desktop, load from root bundle and save to temp file
+        final ByteData data = await rootBundle.load(widget.url);
+        final directory = Directory.systemTemp;
+        final file = File('${directory.path}/cv.pdf');
+        await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
+        await launcher.launchUrl(Uri.file(file.path), mode: launcher.LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching CV: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        decoration: BoxDecoration(
-          color: _isHovered ? AppColors.primary : Colors.transparent,
-          border: Border.all(color: AppColors.primary),
-          borderRadius: BorderRadius.circular(50),
-        ),
-        child: Text(
-          widget.text,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: _isHovered ? AppColors.background : AppColors.primary,
-            letterSpacing: 0.5,
+      child: GestureDetector(
+        onTap: _launchCV,
+        child: AnimatedContainer(
+          duration: AppAnimations.fast,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          decoration: BoxDecoration(
+            color: _isHovered ? AppColors.primary : Colors.transparent,
+            border: Border.all(color: AppColors.primary),
+            borderRadius: BorderRadius.circular(50),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Animated stat card with hover effect and count-up animation
-class AnimatedStatCard extends StatefulWidget {
-  final String value;
-  final String label;
-
-  const AnimatedStatCard({
-    super.key,
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  State<AnimatedStatCard> createState() => _AnimatedStatCardState();
-}
-
-class _AnimatedStatCardState extends State<AnimatedStatCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        curve: AppAnimations.easeOut,
-        transform: Matrix4.identity()..scaled(_isHovered ? 1.05 : 1.0, 1.0, 1.0),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: _isHovered ? 0.4 : 0.2),
-            width: 1,
+          child: Text(
+            widget.text,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: _isHovered ? AppColors.background : AppColors.primary,
+              letterSpacing: 0.5,
+            ),
           ),
-          boxShadow: _isHovered
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        padding: const EdgeInsets.all(AppSpacing.cardSmall),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Count-up animation for the value (extract number)
-            CountUpAnimation(
-              end: int.parse(widget.value.replaceAll(RegExp(r'[^\d]'), '')),
-              suffix: widget.value.contains('+') ? '+' : widget.value.contains('M') ? 'M+' : '',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              widget.label,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
         ),
       ),
     );

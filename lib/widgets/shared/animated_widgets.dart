@@ -136,6 +136,7 @@ class CountUpAnimation extends StatefulWidget {
   final int end;
   final int start;
   final Duration duration;
+  final Duration delay;
   final String prefix;
   final String suffix;
   final TextStyle? style;
@@ -145,6 +146,7 @@ class CountUpAnimation extends StatefulWidget {
     required this.end,
     this.start = 0,
     this.duration = AppAnimations.countUp,
+    this.delay = Duration.zero,
     this.prefix = '',
     this.suffix = '',
     this.style,
@@ -158,6 +160,10 @@ class _CountUpAnimationState extends State<CountUpAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _disposed = false;
+
+  // Custom curve that slows down significantly near the end
+  static const _slowEndCurve = _SlowEndCurve();
 
   @override
   void initState() {
@@ -170,15 +176,21 @@ class _CountUpAnimationState extends State<CountUpAnimation>
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: AppAnimations.easeOutQuart,
+        curve: _slowEndCurve,
       ),
     );
 
-    _controller.forward();
+    // Start animation after delay
+    Future.delayed(widget.delay, () {
+      if (!_disposed && mounted) {
+        _controller.forward();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _controller.dispose();
     super.dispose();
   }
@@ -195,6 +207,27 @@ class _CountUpAnimationState extends State<CountUpAnimation>
         );
       },
     );
+  }
+}
+
+/// Custom curve that slows down dramatically near the end for count-up effect
+class _SlowEndCurve extends Curve {
+  const _SlowEndCurve();
+
+  @override
+  double transformInternal(double t) {
+    // Use a combination of curves that creates fast start, very slow end
+    // This creates a "count to target and slow down at the end" effect
+    if (t < 0.7) {
+      // First 70% of time: reach ~90% of value
+      return (t / 0.7) * 0.9;
+    } else {
+      // Last 30% of time: crawl the remaining 10%
+      final remainingTime = (t - 0.7) / 0.3; // 0 to 1
+      // Use easeOutCubic for the final stretch
+      final eased = 1 - (1 - remainingTime) * (1 - remainingTime) * (1 - remainingTime);
+      return 0.9 + eased * 0.1;
+    }
   }
 }
 
